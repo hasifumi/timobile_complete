@@ -1,14 +1,14 @@
-function! neocomplcache#sources#timobile_complete#define()
+function! neocomplcache#sources#timobile_complete#define()"{{{
         return s:source
-endfunction
+endfunction"}}}
 
 let s:source = {
   \ 'name' : 'timobile_complete',
   \ 'kind' : 'ftplugin',
   \ 'filetypes' : { 'test': 1, 'coffee': 1  }
-  \ }
+  \ } "DON'T FOLDING! it will occure an error.
 
-function! s:source.initialize()
+function! s:source.initialize()"{{{
   let s:keywords = []
   let s:objects = {
  \  'Window': { 
@@ -248,18 +248,31 @@ function! s:source.initialize()
 " \  },
   let s:variables = {}
   let s:line = 0
-endfunction
+  let s:temp_objects = {}
+endfunction"}}}
 
-function! s:source.finalize()
-endfunction
+function! s:source.finalize()"{{{
+  unlet s:objects
+  unlet s:temp_objects
+  unlet s:keywords
+  unlet s:line
+  unlet s:variables
+endfunction"}}}
 
-function! s:source.get_keyword_pos(cur_text)
+function! timobile_complete#initialize()"{{{
+  call s:source.finalize()
+  call s:source.initialize()
+endfunction"}}}
+
+function! s:source.get_keyword_pos(cur_text)"{{{
   if neocomplcache#within_comment()
     return -1
   endif
   if line(".") != s:line
     let s:line = line(".")
-    call timobile_complete#get_all_variables()
+    "call timobile_complete#get_all_variables()
+    call timobile_complete#find_require_line(s:line)
+    call timobile_complete#get_variables(s:line)
   endif
   for word1 in keys(s:variables)
     if a:cur_text =~ word1
@@ -267,30 +280,22 @@ function! s:source.get_keyword_pos(cur_text)
         call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
          \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
       endfor
-      "echo 'word1. :' . word1."."
       return match(a:cur_text, word1.".")
       break
     endif
   endfor
-endfunction
+endfunction"}}}
 
-function! s:source.get_complete_words(cur_keyword_pos, cur_keyword_str)
+function! s:source.get_complete_words(cur_keyword_pos, cur_keyword_str)"{{{
   return neocomplcache#keyword_filter(copy(s:keywords), a:cur_keyword_str)
-endfunction
+endfunction"}}}
 
-function! timobile_complete#get_variables(line)
+function! timobile_complete#get_variables(line)"{{{
   let temp_line = substitute(a:line, '\s', '', 'g')
-  "echo temp_line
+  echo temp_line
   if temp_line =~ "=" && temp_line =~ "\\."
-  "if match(temp_line, "\w*=\w*\\.\w*")
-    "let list = matchlist(temp_litemp_linene, '\(\w*\)\(=\)\(\w*\)')
-    "let list = matchlist(temp_line, '\(\w*\)\(=\)\(\w*\)\(\.\)\(\w*\)')
     let list = matchlist(temp_line, '\(\w*\)\(=\)\(\w*\)\(\.\)\(\w*\)\(\.\)\(\w*\)')
-    "echo 'list[5]:' . list[5] . ', list[4]:' . list[4] . ', list[3]:' . list[3]
-    "echo 'list[7]:' . list[7] . ', list[6]:' . list[6] . ', list[5]:' . list[5]. ', list[4]:' . list[4] . ', list[3]:' . list[3]
     for k in keys(s:objects)
-      "if (len(list) > 0 ) && (list[3] =~ s:objects[k]['create'])
-      "if (len(list) > 0 ) && (list[5] =~ s:objects[k]['create'])
       if (len(list) > 0 ) && (list[7] =~ s:objects[k]['create'])
         if !has_key(s:variables, list[1])
           let s:variables[list[1]] = { 'type': k }
@@ -298,44 +303,126 @@ function! timobile_complete#get_variables(line)
       endif
     endfor
   endif
-endfunction
+  if temp_line =~ '=' && temp_line=~ 'new'
+    let list = matchlist(temp_line, '\(\w*\)\(=\)new\(\w*\)')
+    echo list
+    echo list[1]
+    echo list[3]
+    for k in keys(s:temp_objects)
+      echo k
+      if (len(list) > 0) && (k =~ list[3])
+        if !has_key(s:variables, list[1])
+          let s:variables[list[1]] = { 'type': k }
+        endif  
+      endif  
+    endfor
+  endif
+endfunction"}}}
 
-function! timobile_complete#get_all_variables()
+function! timobile_complete#get_all_variables()"{{{
   let s:variables = {}
   let lines = getline(0, line("$"))
   for line in lines
     call timobile_complete#get_variables(line)
+    "call timobile_complete#find_require_line(line)
   endfor
-endfunction
+endfunction"}}}
 
-function! timobile_complete#show_all_variables()
+function! timobile_complete#show_all_variables()"{{{
   for i in keys(s:variables)
     echo ' key: ' . i . ', type: ' . s:variables[i]['type']
   endfor
-endfunction
+endfunction"}}}
 
-function! timobile_complete#show_all_objects()
+function! timobile_complete#show_all_objects()"{{{
   for i in keys(s:objects)
     echo ' key: ' . i 
   endfor
-endfunction
+endfunction"}}}
 
-function! timobile_complete#test()
-  let str = 'cc=gaicre'
-  if str =~ "\."
-    echo 'OK'
+function! timobile_complete#show_temp_objects()"{{{
+  echo s:temp_objects
+endfunction"}}}
+
+function! timobile_complete#test()"{{{
+  let line =  getline(".")
+  echo line
+  call timobile_complete#find_require_line(line)
+endfunction"}}}
+
+function! timobile_complete#add_temp_object(class, member, kind)"{{{
+  "echo "class:" . a:class . ", member:" . a:member . ", kind:" . a:kind
+  if has_key(s:temp_objects, a:class)
+    "echo "has class"
+    if has_key(s:temp_objects[a:class]["member"], a:member)
+      "echo "has member"
+    else
+      let s:temp_objects[a:class]["member"][a:member] = a:kind
+    endif
   else
-    echo 'NG'
+    if empty(a:member) || empty(a:kind)
+      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
+    else
+      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
+      let s:temp_objects[a:class]["member"][a:member] = a:kind
+    endif
   endif
-endfunction
+endfunction"}}}
 
-"function! timobile_complete#get_space_col(str)
-"  let s_pos = len(a:str) - 1
-"  while s_pos >= 0
-"    if strpart(a:str, s_pos, 1) =~ ' '
-"      break
-"    endif
-"    let s_pos -= 1
-"  endwhile
-"  return s_pos
-"endfunction
+function! timobile_complete#show_all_temp_objects()"{{{
+  for i in keys(s:temp_objects)
+    echo 'key:' . i
+  endfor
+endfunction"}}}
+
+function! timobile_complete#find_require_line(line)"{{{
+  let aft0 = substitute(a:line, " ", "", "g")
+  echo "aft0:" . aft0
+  let aft1 = substitute(aft0, "'", "\"", "g")
+  echo "aft1:" . aft1
+  if aft1 =~ "require"
+    echo "found require"
+    let list = matchlist(aft1, '\(\w*\)=\w*("\(\w*\)"')
+    echo list[2]
+    call timobile_complete#glob_require_file(list[2])
+  endif
+endfunction"}}}
+
+function! timobile_complete#glob_require_file(filename)"{{{
+  let base = "./" . a:filename . ".coffee"
+  echo base
+  let filelist = glob(base)
+  let splitted = split(filelist)
+  for file in splitted
+    echo file
+    if filereadable(file)
+      echo "readable!"
+      for line in readfile(file)
+        echo line
+        let res = timobile_complete#find_member_line(line)
+        echo res
+        if !empty(res)
+          echo 'res[0]:' . res[0] . ', res[1]:' . res[1]
+          call timobile_complete#add_temp_object(a:filename, res[0], res[1])
+        endif
+      endfor
+    endif
+  endfor
+endfunction"}}}
+
+function! timobile_complete#find_member_line(line)"{{{
+  let res = []
+  let aft0 = substitute(a:line, " ", "", "g")
+  "echo "aft0:" . aft0
+  if aft0 =~ "->" || aft0 =~ "=>"
+    let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
+    "echo list[1]
+    let res = [list[1],'f']
+  elseif aft0 =~ "=" && aft0 =~ "self\."
+    echo "found coffee property"
+    let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
+    echo list[1]
+    let res = [list[1],'v']
+  endif
+  return res
+endfunction"}}}
