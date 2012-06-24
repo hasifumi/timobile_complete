@@ -280,6 +280,10 @@ function! s:source.get_keyword_pos(cur_text)"{{{
         call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
          \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
       endfor
+      for word in keys(s:temp_objects[s:variables[word1]['type']]['member'])
+        call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
+         \ 'kind' : s:temp_objects[s:variables[word1]['type']]['member'][word]})
+      endfor
       return match(a:cur_text, word1.".")
       break
     endif
