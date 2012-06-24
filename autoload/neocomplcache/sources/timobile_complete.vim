@@ -270,9 +270,9 @@ function! s:source.get_keyword_pos(cur_text)"{{{
   endif
   if line(".") != s:line
     let s:line = line(".")
-    "call timobile_complete#get_all_variables()
+    call timobile_complete#get_all_variables()
     call timobile_complete#find_require_line(s:line)
-    call timobile_complete#get_variables(s:line)
+    "call timobile_complete#get_variables(s:line)
   endif
   for word1 in keys(s:variables)
     if a:cur_text =~ word1
@@ -313,6 +313,7 @@ function! timobile_complete#get_variables(line)"{{{
       if (len(list) > 0) && (k =~ list[3])
         if !has_key(s:variables, list[1])
           let s:variables[list[1]] = { 'type': k }
+          "echo "s:variables[list[1]][type]:" . s:variables[list[1]][type]
         endif  
       endif  
     endfor
