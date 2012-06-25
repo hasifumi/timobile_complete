@@ -278,16 +278,16 @@ function! s:source.get_keyword_pos(cur_text)"{{{
   for word1 in keys(s:variables)
     "echo "word1:" . word1
     if a:cur_text =~ word1
-      "for word in keys(s:objects[s:variables[word1]['type']]['member'])
-      "  echo "add " . word1 . "." . word . " to s:keywords"
-      "  call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
-      "   \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
-      "endfor
-      for word in keys(s:temp_objects[s:variables[word1]['type']]['member'])
+      for word in keys(s:objects[s:variables[word1]['type']]['member'])
         echo "add " . word1 . "." . word . " to s:keywords"
         call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
-         \ 'kind' : s:temp_objects[s:variables[word1]['type']]['member'][word]})
+         \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
       endfor
+      "for word in keys(s:temp_objects[s:variables[word1]['type']]['member'])
+      "  echo "add " . word1 . "." . word . " to s:keywords"
+      "  call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
+      "   \ 'kind' : s:temp_objects[s:variables[word1]['type']]['member'][word]})
+      "endfor
       return match(a:cur_text, word1.".")
       break
     endif
@@ -316,9 +316,12 @@ function! timobile_complete#get_variables(line)"{{{
     "echo list
     "echo list[1]
     "echo list[3]
-    for k in keys(s:temp_objects)
+    "for k in keys(s:temp_objects)
+    for k in keys(s:objects)
       "echo k
-      if (len(list) > 0) && (k =~ list[3])
+      "if (len(list) > 0) && (k =~ list[3])
+      let temp = "temp_" . list[3]
+      if (len(list) > 0) && (k =~ temp)
         if !has_key(s:variables, list[1])
           let s:variables[list[1]] = { 'type': k }
           "echo "s:variables[list[1]][type]:" . s:variables[list[1]][type]
@@ -368,22 +371,41 @@ endfunction"}}}"}}}
 
 function! timobile_complete#add_temp_object(class, member, kind)"{{{
   "echo "class:" . a:class . ", member:" . a:member . ", kind:" . a:kind
-  if has_key(s:temp_objects, a:class)
+  if has_key(s:objects, a:class)
     "echo "has class"
-    if has_key(s:temp_objects[a:class]["member"], a:member)
+    if has_key(s:objects[a:class]["member"], a:member)
       "echo "has member"
     else
-      let s:temp_objects[a:class]["member"][a:member] = a:kind
+      let s:objects[a:class]["member"][a:member] = a:kind
     endif
   else
     if empty(a:member) || empty(a:kind)
-      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
+      let s:objects[a:class] = {'member':{}, 'create':'new'}
     else
-      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
-      let s:temp_objects[a:class]["member"][a:member] = a:kind
+      let s:objects[a:class] = {'member':{}, 'create':'new'}
+      let s:objects[a:class]["member"][a:member] = a:kind
     endif
   endif
 endfunction"}}}
+
+"function! timobile_complete#add_temp_object(class, member, kind)"{{{
+"  "echo "class:" . a:class . ", member:" . a:member . ", kind:" . a:kind
+"  if has_key(s:temp_objects, a:class)
+"    "echo "has class"
+"    if has_key(s:temp_objects[a:class]["member"], a:member)
+"      "echo "has member"
+"    else
+"      let s:temp_objects[a:class]["member"][a:member] = a:kind
+"    endif
+"  else
+"    if empty(a:member) || empty(a:kind)
+"      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
+"    else
+"      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
+"      let s:temp_objects[a:class]["member"][a:member] = a:kind
+"    endif
+"  endif
+"endfunction"}}}
 
 "function! timobile_complete#show_all_temp_objects()"{{{
 "  for i in keys(s:temp_objects)
@@ -419,7 +441,7 @@ function! timobile_complete#glob_require_file(filename)"{{{
         "echo res
         if !empty(res)
           "echo 'res[0]:' . res[0] . ', res[1]:' . res[1]
-          call timobile_complete#add_temp_object(a:filename, res[0], res[1])
+          call timobile_complete#add_temp_object("temp_" . a:filename, res[0], res[1])
         endif
       endfor
     endif
