@@ -268,19 +268,23 @@ function! s:source.get_keyword_pos(cur_text)"{{{
   if neocomplcache#within_comment()
     return -1
   endif
+  "echo "s:line:" . s:line
   if line(".") != s:line
     let s:line = line(".")
+    "call timobile_complete#find_require_line(getline("."))
+    "call timobile_complete#get_variables(getline("."))
     call timobile_complete#get_all_variables()
-    call timobile_complete#find_require_line(s:line)
-    "call timobile_complete#get_variables(s:line)
   endif
   for word1 in keys(s:variables)
+    "echo "word1:" . word1
     if a:cur_text =~ word1
-      for word in keys(s:objects[s:variables[word1]['type']]['member'])
-        call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
-         \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
-      endfor
+      "for word in keys(s:objects[s:variables[word1]['type']]['member'])
+      "  echo "add " . word1 . "." . word . " to s:keywords"
+      "  call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
+      "   \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
+      "endfor
       for word in keys(s:temp_objects[s:variables[word1]['type']]['member'])
+        echo "add " . word1 . "." . word . " to s:keywords"
         call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
          \ 'kind' : s:temp_objects[s:variables[word1]['type']]['member'][word]})
       endfor
@@ -296,7 +300,7 @@ endfunction"}}}
 
 function! timobile_complete#get_variables(line)"{{{
   let temp_line = substitute(a:line, '\s', '', 'g')
-  echo temp_line
+  "echo temp_line
   if temp_line =~ "=" && temp_line =~ "\\."
     let list = matchlist(temp_line, '\(\w*\)\(=\)\(\w*\)\(\.\)\(\w*\)\(\.\)\(\w*\)')
     for k in keys(s:objects)
@@ -309,11 +313,11 @@ function! timobile_complete#get_variables(line)"{{{
   endif
   if temp_line =~ '=' && temp_line=~ 'new'
     let list = matchlist(temp_line, '\(\w*\)\(=\)new\(\w*\)')
-    echo list
-    echo list[1]
-    echo list[3]
+    "echo list
+    "echo list[1]
+    "echo list[3]
     for k in keys(s:temp_objects)
-      echo k
+      "echo k
       if (len(list) > 0) && (k =~ list[3])
         if !has_key(s:variables, list[1])
           let s:variables[list[1]] = { 'type': k }
@@ -328,8 +332,10 @@ function! timobile_complete#get_all_variables()"{{{
   let s:variables = {}
   let lines = getline(0, line("$"))
   for line in lines
+    call timobile_complete#find_require_line(line)
+  endfor
+  for line in lines
     call timobile_complete#get_variables(line)
-    "call timobile_complete#find_require_line(line)
   endfor
 endfunction"}}}
 
@@ -345,15 +351,20 @@ function! timobile_complete#show_all_objects()"{{{
   endfor
 endfunction"}}}
 
-function! timobile_complete#show_temp_objects()"{{{
-  echo s:temp_objects
+function! timobile_complete#show_all_temp_objects()"{{{
+  for i in keys(s:temp_objects)
+    echo s:temp_objects[i]
+  endfor 
 endfunction"}}}
 
-function! timobile_complete#test()"{{{
-  let line =  getline(".")
-  echo line
-  call timobile_complete#find_require_line(line)
+function! timobile_complete#show_temp_object(object)"{{{
+  echo s:temp_objects[a:object]
 endfunction"}}}
+
+function! timobile_complete#test(word)"{{{"{{{
+  echo s:variables[a:word]['type']
+  echo s:temp_objects[s:variables[a:word]['type']]['member']
+endfunction"}}}"}}}
 
 function! timobile_complete#add_temp_object(class, member, kind)"{{{
   "echo "class:" . a:class . ", member:" . a:member . ", kind:" . a:kind
@@ -374,40 +385,40 @@ function! timobile_complete#add_temp_object(class, member, kind)"{{{
   endif
 endfunction"}}}
 
-function! timobile_complete#show_all_temp_objects()"{{{
-  for i in keys(s:temp_objects)
-    echo 'key:' . i
-  endfor
-endfunction"}}}
+"function! timobile_complete#show_all_temp_objects()"{{{
+"  for i in keys(s:temp_objects)
+"    echo 'key:' . i
+"  endfor
+"endfunction"}}}
 
 function! timobile_complete#find_require_line(line)"{{{
   let aft0 = substitute(a:line, " ", "", "g")
-  echo "aft0:" . aft0
+  "echo "aft0:" . aft0
   let aft1 = substitute(aft0, "'", "\"", "g")
-  echo "aft1:" . aft1
+  "echo "aft1:" . aft1
   if aft1 =~ "require"
     echo "found require"
     let list = matchlist(aft1, '\(\w*\)=\w*("\(\w*\)"')
-    echo list[2]
+    "echo list[2]
     call timobile_complete#glob_require_file(list[2])
   endif
 endfunction"}}}
 
 function! timobile_complete#glob_require_file(filename)"{{{
   let base = "./" . a:filename . ".coffee"
-  echo base
+  "echo base
   let filelist = glob(base)
   let splitted = split(filelist)
   for file in splitted
-    echo file
+    "echo file
     if filereadable(file)
       echo "readable!"
       for line in readfile(file)
-        echo line
+        "echo line
         let res = timobile_complete#find_member_line(line)
-        echo res
+        "echo res
         if !empty(res)
-          echo 'res[0]:' . res[0] . ', res[1]:' . res[1]
+          "echo 'res[0]:' . res[0] . ', res[1]:' . res[1]
           call timobile_complete#add_temp_object(a:filename, res[0], res[1])
         endif
       endfor
@@ -420,13 +431,14 @@ function! timobile_complete#find_member_line(line)"{{{
   let aft0 = substitute(a:line, " ", "", "g")
   "echo "aft0:" . aft0
   if aft0 =~ "->" || aft0 =~ "=>"
+    echo "found coffee function"
     let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
     "echo list[1]
     let res = [list[1],'f']
   elseif aft0 =~ "=" && aft0 =~ "self\."
     echo "found coffee property"
     let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
-    echo list[1]
+    "echo list[1]
     let res = [list[1],'v']
   endif
   return res
