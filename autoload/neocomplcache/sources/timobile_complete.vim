@@ -313,14 +313,12 @@ function! timobile_complete#get_variables(line)"{{{
   endif
   if temp_line =~ '=' && temp_line=~ 'new'
     let list = matchlist(temp_line, '\(\w*\)\(=\)new\(\w*\)')
-    "echo list
-    "echo list[1]
-    "echo list[3]
-    for k in keys(s:temp_objects)
+    for k in keys(s:objects)
       "echo k
-      if (len(list) > 0) && (k =~ list[3])
+      let temp = "temp_" . list[3]
+      if (len(list) > 0) && (k =~ temp)
         if !has_key(s:variables, list[1])
-          let s:variables[list[1]] = { 'type': k }
+          let s:variables[list[1]] = { 'type': temp }
           "echo "s:variables[list[1]][type]:" . s:variables[list[1]][type]
         endif  
       endif  
@@ -376,19 +374,19 @@ endfunction"}}}"}}}
 
 function! timobile_complete#add_temp_object(class, member, kind)"{{{
   "echo "class:" . a:class . ", member:" . a:member . ", kind:" . a:kind
-  if has_key(s:temp_objects, a:class)
+  if has_key(s:objects, a:class)
     "echo "has class"
-    if has_key(s:temp_objects[a:class]["member"], a:member)
+    if has_key(s:objects[a:class]["member"], a:member)
       "echo "has member"
     else
-      let s:temp_objects[a:class]["member"][a:member] = a:kind
+      let s:objects[a:class]["member"][a:member] = a:kind
     endif
   else
     if empty(a:member) || empty(a:kind)
-      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
+      let s:objects[a:class] = {'member':{}, 'create':'new'}
     else
-      let s:temp_objects[a:class] = {'member':{}, 'create':'new'}
-      let s:temp_objects[a:class]["member"][a:member] = a:kind
+      let s:objects[a:class] = {'member':{}, 'create':'new'}
+      let s:objects[a:class]["member"][a:member] = a:kind
     endif
   endif
 endfunction"}}}
@@ -427,7 +425,7 @@ function! timobile_complete#glob_require_file(filename)"{{{
         "echo res
         if !empty(res)
           "echo 'res[0]:' . res[0] . ', res[1]:' . res[1]
-          call timobile_complete#add_temp_object(a:filename, res[0], res[1])
+          call timobile_complete#add_temp_object("temp_" . a:filename, res[0], res[1])
         endif
       endfor
     endif
@@ -437,17 +435,15 @@ endfunction"}}}
 function! timobile_complete#find_member_line(line)"{{{
   let res = []
   let aft0 = substitute(a:line, " ", "", "g")
-  "echo "aft0:" . aft0
   if aft0 =~ "->" || aft0 =~ "=>"
     echo "found coffee function"
     let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
-    "echo list[1]
     let res = [list[1],'f']
-  elseif aft0 =~ "=" && aft0 =~ "self\."
-    echo "found coffee property"
-    let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
-    "echo list[1]
-    let res = [list[1],'v']
+  "elseif aft0 =~ "=" && aft0 =~ "self\."
+  "  echo "found coffee property"
+  "  let list = matchlist(aft0, '\w*\.\(\w*\)=\.*')
+  "  "echo list[1]
+  "  let res = [list[1],'v']
   endif
   return res
 endfunction"}}}
