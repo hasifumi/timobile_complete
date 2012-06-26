@@ -278,16 +278,16 @@ function! s:source.get_keyword_pos(cur_text)"{{{
   for word1 in keys(s:variables)
     "echo "word1:" . word1
     if a:cur_text =~ word1
-      "for word in keys(s:objects[s:variables[word1]['type']]['member'])
-      "  echo "add " . word1 . "." . word . " to s:keywords"
-      "  call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
-      "   \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
-      "endfor
-      for word in keys(s:temp_objects[s:variables[word1]['type']]['member'])
+      for word in keys(s:objects[s:variables[word1]['type']]['member'])
         echo "add " . word1 . "." . word . " to s:keywords"
         call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
-         \ 'kind' : s:temp_objects[s:variables[word1]['type']]['member'][word]})
+         \ 'kind' : s:objects[s:variables[word1]['type']]['member'][word]})
       endfor
+      "for word in keys(s:temp_objects[s:variables[word1]['type']]['member'])
+      "  echo "add " . word1 . "." . word . " to s:keywords"
+      "  call add(s:keywords, { 'word' : word1.".".word, 'menu': '[timobile]', 
+      "   \ 'kind' : s:temp_objects[s:variables[word1]['type']]['member'][word]})
+      "endfor
       return match(a:cur_text, word1.".")
       break
     endif
@@ -351,6 +351,10 @@ function! timobile_complete#show_all_objects()"{{{
   endfor
 endfunction"}}}
 
+function! timobile_complete#show_objects(object)"{{{
+  echo s:objects[a:object]
+endfunction"}}}
+
 function! timobile_complete#show_all_temp_objects()"{{{
   for i in keys(s:temp_objects)
     echo s:temp_objects[i]
@@ -364,6 +368,10 @@ endfunction"}}}
 function! timobile_complete#test(word)"{{{"{{{
   echo s:variables[a:word]['type']
   echo s:temp_objects[s:variables[a:word]['type']]['member']
+endfunction"}}}"}}}
+
+function! timobile_complete#test2()"{{{"{{{
+  echo s:line
 endfunction"}}}"}}}
 
 function! timobile_complete#add_temp_object(class, member, kind)"{{{
